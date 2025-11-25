@@ -19,38 +19,10 @@
 
 
 
-# 🔹 Анализ сложности реализации
-print("🔍 АНАЛИЗ СЛОЖНОСТИ РЕАЛИЗАЦИИ")
-print("=" * 50)
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
 
-# Подсчёт строк кода PostgreSQL запроса для срочных проектов
-postgres_query_lines = """
-SELECT DISTINCT p.project_id, p.name, p.description, p.created_at
-FROM projects p
-JOIN tasks t ON p.project_id = t.project_id
-WHERE t.status = 'срочно'
-""".strip().count('\n') + 1
-
-# MongoDB — количество этапов агрегации
-mongodb_pipeline_steps = 4  # match, group, find, project
-
-print(f"📊 Сложность реализации:")
-print(f"• PostgreSQL SQL запрос: {postgres_query_lines} строк")
-print(f"• MongoDB агрегационный пайплайн: {mongodb_pipeline_steps} этапа(ов)")
-
-print(f"\n📖 Читаемость кода:")
-print(f"• PostgreSQL: Высокая (стандартный SQL)")
-print(f"• MongoDB: Средняя (требует знания агрегационных операций)")
-
-print(f"\n🔧 Поддерживаемость:")
-print(f"• PostgreSQL: Легко модифицировать")
-print(f"• MongoDB: Изменение пайплайна сложнее")
-
-print(f"\n⚡ Производительность:")
-print(f"• PostgreSQL: JOIN операции, индексы")
-print(f"• MongoDB: Множественные проходы по документам")
-
-# 🔹 Визуализация через seaborn
 sns.set_theme(style="whitegrid")
 width = 0.35
 
@@ -58,14 +30,14 @@ fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
 
 # 1. Сравнение сложности реализации
 categories = ['Строки кода / Этапы', 'Читаемость', 'Поддерживаемость']
-postgres_scores = [postgres_query_lines, 8, 8]  # оценка по 10-балльной шкале
+postgres_scores = [postgres_query_lines, 8, 8]
 mongo_scores = [mongodb_pipeline_steps, 6, 6]
 
 x = np.arange(len(categories))
 sns.barplot(ax=ax1, x=x - width/2, y=postgres_scores, color='blue', alpha=0.7, label='PostgreSQL')
 sns.barplot(ax=ax1, x=x + width/2, y=mongo_scores, color='orange', alpha=0.7, label='MongoDB')
 ax1.set_xticks(x)
-ax1.set_xticklabels(categories)
+ax1.set_xticklabels(categories, rotation=15, ha='right')  # Поворот для читаемости
 ax1.set_ylabel('Оценка / строки')
 ax1.set_title('Сравнение сложности реализации')
 ax1.legend()
@@ -81,6 +53,7 @@ ax2.set_ylabel('Оценка (1-10)')
 ax2.set_title('Производительность по операциям')
 ax2.set_ylim(0, 10)
 ax2.legend()
+ax2.tick_params(axis='x', rotation=15)  # Поворот для длинных названий
 ax2.grid(True, alpha=0.3)
 
 # 3. Гибкость системы
@@ -92,7 +65,7 @@ x_flex = np.arange(len(aspects))
 sns.barplot(ax=ax3, x=x_flex - width/2, y=pg_flex, color='blue', alpha=0.7, label='PostgreSQL')
 sns.barplot(ax=ax3, x=x_flex + width/2, y=mongo_flex, color='orange', alpha=0.7, label='MongoDB')
 ax3.set_xticks(x_flex)
-ax3.set_xticklabels(aspects)
+ax3.set_xticklabels(aspects, rotation=15, ha='right')
 ax3.set_ylabel('Оценка (1-10)')
 ax3.set_title('Гибкость системы')
 ax3.legend()
@@ -107,7 +80,7 @@ x_overall = np.arange(len(overall))
 sns.barplot(ax=ax4, x=x_overall - width/2, y=pg_overall, color='blue', alpha=0.7, label='PostgreSQL')
 sns.barplot(ax=ax4, x=x_overall + width/2, y=mongo_overall, color='orange', alpha=0.7, label='MongoDB')
 ax4.set_xticks(x_overall)
-ax4.set_xticklabels(overall)
+ax4.set_xticklabels(overall, rotation=15, ha='right')
 ax4.set_ylabel('Оценка (1-10)')
 ax4.set_title('Общая оценка систем')
 ax4.legend()
@@ -115,22 +88,3 @@ ax4.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.show()
-
-# Итоговые выводы
-print("\n🎯 ИТОГОВЫЕ ВЫВОДЫ:")
-print("="*50)
-print("🏆 PostgreSQL лучше для:")
-print("  • Аналитических запросов с JOIN")
-print("  • Сложных агрегаций")
-print("  • Транзакционных операций")
-print("  • Систем с фиксированной схемой")
-
-print("\n🏆 MongoDB лучше для:")
-print("  • Гибких схем данных")
-print("  • Горизонтального масштабирования")
-print("  • Документно-ориентированных данных")
-print("  • Быстрой разработки прототипов")
-
-print("\n💡 Рекомендации:")
-print("  • Для вложенных структур и сложной аналитики: PostgreSQL")
-print("  • Для гибких и быстро меняющихся схем: MongoDB")
