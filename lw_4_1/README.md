@@ -37,6 +37,7 @@
 
 Предварительно растроенная система:
 
-(https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/blob/main/lw_4_1/photo_2025-11-26_02-28-14.jpg)
-()
-()
+![](https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/blob/main/lw_4_1/photo_2025-11-26_02-28-14.jpg)
+![]()
+![]()
+![]()
