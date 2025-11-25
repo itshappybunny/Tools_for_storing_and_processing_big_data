@@ -17,50 +17,73 @@
 ## **Лабораторная работа 6.1. Обработка данных с использованием Apache Spark**
 
 
-def get_urgent_projects_pg():
-    """Получить проекты, где есть хотя бы одна срочная задача (PostgreSQL)."""
-    
-    try:
-        conn = psycopg2.connect(**pg_conn_params)
-        with conn.cursor() as cur:
-            query = """
-                SELECT DISTINCT p.project_id, p.name, p.description, p.created_at
-                FROM projects p
-                JOIN tasks t ON p.project_id = t.project_id
-                WHERE t.status = 'срочно'
-            """
-            cur.execute(query)
-            rows = cur.fetchall()
+import seaborn as sns
 
-            # Преобразуем в словари — как в MongoDB
-            projects = []
-            for r in rows:
-                projects.append({
-                    "project_id": r[0],
-                    "name": r[1],
-                    "description": r[2],
-                    "created_at": r[3]
-                })
+print("📊 Сравнение производительности запросов на срочные проекты")
+print("=" * 60)
 
-            return projects
-
-    except Exception as e:
-        print(f"❌ Ошибка запроса PostgreSQL: {e}")
-        return []
-    finally:
-        conn.close()
-
-
-# Выполнение и вывод
-urgent_projects_pg, time_pg = measure_time(get_urgent_projects_pg)
-
-if urgent_projects_pg:
-    print("📌 Срочные проекты (PostgreSQL):")
-    print(f"⏱ Выполнено за {time_pg:.5f} секунд")
-    print(f"📊 Найдено {len(urgent_projects_pg)} проектов:")
-    
-    for proj in urgent_projects_pg[:5]:
-        print(f"- Project ID: {proj['project_id']}, Name: {proj['name']}")
+# Проверяем подключение к MongoDB
+if not mongo_client:
+    print("❌ MongoDB недоступен, пропускаем сравнение")
 else:
-    print("❌ Проекты не найдены")
+    # Тестирование на нескольких проектах/итерациях (можно просто повторить запрос несколько раз)
+    test_iterations = [1, 2, 3, 4, 5]  # можно увеличить, если нужно больше данных
+    postgres_times = []
+    mongodb_times = []
 
+    for i in test_iterations:
+        print(f"\n🧪 Тестирование итерации {i}:")
+        
+        # PostgreSQL
+        _, pg_time = measure_time(get_urgent_projects_pg)
+        postgres_times.append(pg_time)
+        print(f"  PostgreSQL: {pg_time:.4f} сек")
+        
+        # MongoDB
+        _, mongo_time = measure_time(get_mongodb_urgent_projects)
+        mongodb_times.append(mongo_time)
+        print(f"  MongoDB: {mongo_time:.4f} сек")
+        
+        # Сравнение
+        if pg_time < mongo_time:
+            faster = "PostgreSQL"
+            speedup = mongo_time / pg_time
+        else:
+            faster = "MongoDB"
+            speedup = pg_time / mongo_time
+        
+        print(f"  🏆 Быстрее: {faster} (в {speedup:.2f} раз)")
+
+    # Визуализация через seaborn
+    sns.set_theme(style="whitegrid")
+    
+    # Время выполнения
+    plt.figure(figsize=(14, 8))
+    sns.lineplot(x=test_iterations, y=postgres_times, marker='o', label='PostgreSQL', linewidth=2)
+    sns.lineplot(x=test_iterations, y=mongodb_times, marker='s', label='MongoDB', linewidth=2)
+    plt.xlabel("Итерация")
+    plt.ylabel("Время выполнения (сек)")
+    plt.title("Время выполнения запросов на срочные проекты")
+    plt.legend()
+    plt.show()
+    
+    # Соотношение производительности
+    speedup_ratio = [mongo_time / pg_time for pg_time, mongo_time in zip(postgres_times, mongodb_times)]
+    plt.figure(figsize=(8,5))
+    sns.barplot(x=[str(i) for i in test_iterations], y=speedup_ratio, palette=["green" if x>1 else "red" for x in speedup_ratio])
+    plt.axhline(1, color='black', linestyle='--', alpha=0.5)
+    plt.xlabel("Итерация")
+    plt.ylabel("Соотношение времени (MongoDB/PostgreSQL)")
+    plt.title("Сравнение производительности")
+    plt.show()
+    
+    # Статистика
+    avg_pg_time = np.mean(postgres_times)
+    avg_mongo_time = np.mean(mongodb_times)
+    std_pg_time = np.std(postgres_times)
+    std_mongo_time = np.std(mongodb_times)
+    
+    print("\n📋 ДЕТАЛЬНАЯ СТАТИСТИКА:")
+    print(f"PostgreSQL - Среднее: {avg_pg_time:.4f}с, Стд. отклонение: {std_pg_time:.4f}с")
+    print(f"MongoDB - Среднее: {avg_mongo_time:.4f}с, Стд. отклонение: {std_mongo_time:.4f}с")
+    print(f"Общее ускорение PostgreSQL: {avg_mongo_time/avg_pg_time:.2f}x")
