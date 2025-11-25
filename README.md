@@ -222,3 +222,89 @@ for _, project in projects_df.iterrows():
 print(f"✔ Подготовлено документов для MongoDB: {len(projects_mongo):,}")
 print("Пример документа:")
 projects_mongo[0]
+
+## 3. Подключение к PostgreSQL и загрузка данных
+
+# Параметры подключения (Docker)
+pg_conn_params = {
+    "dbname": "studpg",
+    "user": "postgres",
+    "password": "changeme",
+    "host": "postgresql",  # имя сервиса из docker-compose
+    "port": "5432"
+}
+
+pg_conn = check_postgres_connection(pg_conn_params)
+
+if pg_conn:
+    try:
+        with pg_conn.cursor() as cur:
+            # Удаляем старые таблицы
+            cur.execute("DROP TABLE IF EXISTS tasks CASCADE")
+            cur.execute("DROP TABLE IF EXISTS projects CASCADE")
+
+            # Создаём таблицу проектов
+            cur.execute("""
+                CREATE TABLE projects (
+                    id INTEGER PRIMARY KEY,
+                    name VARCHAR(200),
+                    description TEXT,
+                    start_date DATE,
+                    end_date DATE
+                )
+            """)
+
+            # Создаём таблицу задач
+            cur.execute("""
+                CREATE TABLE tasks (
+                    id INTEGER PRIMARY KEY,
+                    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                    name VARCHAR(200),
+                    status VARCHAR(50),
+                    priority INTEGER
+                )
+            """)
+
+            # Индексы (опционально для ускорения выборок)
+            cur.execute("CREATE INDEX idx_tasks_project_id ON tasks(project_id)")
+            cur.execute("CREATE INDEX idx_tasks_status ON tasks(status)")
+        
+        print("✅ Таблицы projects и tasks успешно созданы")
+
+        print("📥 Загружаем данные...")
+
+        # -------------------------
+        # Загрузка проектов
+        # -------------------------
+        with pg_conn.cursor() as cur:
+            for _, row in projects_df.iterrows():
+                cur.execute("""
+                    INSERT INTO projects (id, name, description, start_date, end_date)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['id'], row['name'], row['description'],
+                      row['start_date'], row['end_date']))
+
+        # -------------------------
+        # Загрузка задач
+        # -------------------------
+        with pg_conn.cursor() as cur:
+            for _, row in tasks_df.iterrows():
+                cur.execute("""
+                    INSERT INTO tasks (id, project_id, name, status, priority)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['id'], row['project_id'], row['name'],
+                      row['status'], row['priority']))
+
+        pg_conn.commit()
+
+        print(f"✅ Загружено {len(projects_df):,} проектов")
+        print(f"✅ Загружено {len(tasks_df):,} задач")
+
+    except Exception as e:
+        print(f"❌ Ошибка при работе с PostgreSQL: {e}")
+    finally:
+        pg_conn.close()
+
+else:
+    print("❌ Пропуск операций с PostgreSQL — нет подключения")
+
