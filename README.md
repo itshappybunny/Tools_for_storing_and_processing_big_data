@@ -44,3 +44,56 @@ print(f"⏱ Выполнено за {time_pg:.5f} сек")
 for p in urgent_projects_pg[:10]:
     print(f"- Project ID: {p[0]}, Name: {p[1]}")
 
+
+def get_mongodb_urgent_projects():
+    """Найти проекты, где есть хотя бы одна задача со статусом 'срочно' (MongoDB)."""
+    
+    try:
+        if not mongo_client:
+            print("❌ Нет подключения к MongoDB")
+            return []
+
+        mongo_db = mongo_client['studmongo']
+        projects_collection = mongo_db['projects']
+        tasks_collection = mongo_db['tasks']
+
+        # Шаг 1: pipeline — найти project_id, в которых есть срочные задачи
+        urgent_pipeline = [
+            {"$match": {"status": "срочно"}},
+            {"$group": {"_id": "$project_id"}}
+        ]
+
+        urgent_projects_ids = list(tasks_collection.aggregate(urgent_pipeline))
+
+        if not urgent_projects_ids:
+            print("❌ Нет проектов со срочными задачами")
+            return []
+
+        project_ids = [item["_id"] for item in urgent_projects_ids]
+        print(f"🔍 Найдено {len(project_ids)} проектов со срочными задачами")
+
+        # Шаг 2: Получить сами проекты
+        projects = list(projects_collection.find(
+            {"project_id": {"$in": project_ids}},
+            {"_id": 0}
+        ))
+
+        print(f"📁 Загружено {len(projects)} проектов из коллекции")
+
+        return projects
+
+    except Exception as e:
+        print(f"❌ Ошибка в MongoDB запросе: {e}")
+        return []
+
+print("\n🎯 Поиск проектов со срочными задачами (MongoDB):")
+
+mongo_urgent_projects, mongo_time = measure_time(get_mongodb_urgent_projects)
+
+if mongo_urgent_projects:
+    print(f"⏱ Время выполнения: {mongo_time:.4f} секунд")
+    print(f"📊 Найдено {len(mongo_urgent_projects)} проектов:")
+    for proj in mongo_urgent_projects[:5]:
+        print(f"  - {proj['project_id']}: {proj['name']}")
+else:
+    print("❌ Проекты не найдены")
