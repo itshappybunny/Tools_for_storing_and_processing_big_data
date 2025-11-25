@@ -49,4 +49,4 @@
 ![](https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/blob/main/lw_4_1/image.png)
 
 
-Сравнение подходов хранения больших данных -> [Просмотреть ноутбук с анализом данных]()
+Сравнение подходов хранения больших данных -> [Просмотреть ноутбук с анализом данных](https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/blob/main/lw_4_1/lw_4_1_PrishletsovaKS.ipynb)
