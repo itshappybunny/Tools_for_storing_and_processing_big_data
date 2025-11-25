@@ -193,3 +193,32 @@ Cell In[10], line 42
 
 NameError: name 'projects_mongo' is not defined
 
+# ---------------------------------------------------------
+# 3. ПРЕОБРАЗОВАНИЕ ДАННЫХ ДЛЯ MONGODB (вложенные документы)
+# ---------------------------------------------------------
+
+print("\nПреобразование данных для MongoDB...")
+
+# Группировка задач по проектам
+tasks_grouped = tasks_df.groupby("project_id")
+
+projects_mongo = []
+
+for _, project in projects_df.iterrows():
+    pid = project["project_id"]
+
+    project_doc = {
+        "project_id": int(pid),
+        "name": project["name"],
+        "description": project["description"],
+        "created_at": project["created_at"],
+        "tasks": tasks_grouped.get_group(pid)
+                 .drop(columns=["project_id"])
+                 .to_dict("records") if pid in tasks_grouped.groups else []
+    }
+
+    projects_mongo.append(project_doc)
+
+print(f"✔ Подготовлено документов для MongoDB: {len(projects_mongo):,}")
+print("Пример документа:")
+projects_mongo[0]
