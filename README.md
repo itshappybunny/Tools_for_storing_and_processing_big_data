@@ -72,6 +72,48 @@ print(f"- tasks_df: {len(tasks_df):,} записей")
 display(projects_df.head())
 display(tasks_df.head())
 
+
+# ---------------------------------------------------------
+# Сохранение данных в CSV файлы
+# ---------------------------------------------------------
+
+projects_df.to_csv("projects.csv", index=False)
+tasks_df.to_csv("tasks.csv", index=False)
+
+print("✅ Данные сохранены в CSV:")
+print("- projects.csv")
+print("- tasks.csv")
+
+# ---------------------------------------------------------
+# 📊 ПРЕДВАРИТЕЛЬНЫЙ АНАЛИЗ ДАННЫХ
+# ---------------------------------------------------------
+
+print("\n📊 Анализ данных:")
+
+tasks_per_project = tasks_df.groupby("project_id").size()
+
+print(f"- Среднее количество задач на проект: {tasks_per_project.mean():.2f}")
+print(f"- Минимальное количество задач в проекте: {tasks_per_project.min()}")
+print(f"- Максимальное количество задач в проекте: {tasks_per_project.max()}")
+
+urgent_count = (tasks_df["status"] == "срочно").sum()
+print(f"- Количество задач со статусом 'срочно': {urgent_count:,}")
+print(f"- Доля срочных задач: {urgent_count / len(tasks_df) * 100:.2f}%")
+
+# Топ-10 самых больших проектов
+top_projects = tasks_per_project.sort_values(ascending=False).head(10)
+print("\n🔥 Топ-10 проектов по количеству задач:")
+for pid, count in top_projects.items():
+    pname = projects_df.loc[projects_df["project_id"] == pid, "name"].iloc[0]
+    print(f"  {pname}: {count} задач")
+
+# Распределение статусов задач
+status_distribution = tasks_df["status"].value_counts(normalize=True) * 100
+print("\n📌 Распределение статусов задач (%):")
+for status, pct in status_distribution.items():
+    print(f"  {status}: {pct:.2f}%")
+
+
 # ---------------------------------------------------------
 # 3. ПРЕОБРАЗОВАНИЕ ДАННЫХ ДЛЯ MONGODB (вложенные документы)
 # ---------------------------------------------------------
