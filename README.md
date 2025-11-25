@@ -183,3 +183,13 @@ if mongo_client:
 else:
     print("❌ Пропуск операций MongoDB из-за ошибки подключения")
 
+    NameError                                 Traceback (most recent call last)
+Cell In[10], line 42
+     40 # 1️⃣ Вставка проектов с вложенными задачами
+     41 projects_collection = mongo_db["projects"]
+---> 42 projects_collection.insert_many(projects_mongo)
+     43 print(f"✅ Загружено {len(projects_mongo):,} проектов (с вложенными задачами)")
+     45 # 2️⃣ Вставка задач (плоская структура)
+
+NameError: name 'projects_mongo' is not defined
+
