@@ -114,32 +114,72 @@ for status, pct in status_distribution.items():
     print(f"  {status}: {pct:.2f}%")
 
 
+
 # ---------------------------------------------------------
-# 3. ПРЕОБРАЗОВАНИЕ ДАННЫХ ДЛЯ MONGODB (вложенные документы)
+# ЗАГРУЗКА ДАННЫХ В MONGODB
 # ---------------------------------------------------------
 
-print("\nПреобразование данных для MongoDB...")
+print("\n=== Подключение к MongoDB и загрузка данных ===")
 
-# Группировка задач по проектам
-tasks_grouped = tasks_df.groupby("project_id")
+# Пытаемся подключиться к MongoDB через Docker-сервис
+try:
+    mongo_client = MongoClient('mongodb://mongouser:mongopass@mongodb:27017/')
+    if check_mongo_connection(mongo_client):
+        print("✅ Подключение через Docker сервис 'mongodb'")
+    else:
+        raise Exception("Не удалось подключиться через Docker сервис")
+except:
+    try:
+        # fallback на localhost
+        mongo_client = MongoClient('mongodb://mongouser:mongopass@localhost:27017/')
+        if check_mongo_connection(mongo_client):
+            print("✅ Подключение через localhost")
+        else:
+            raise Exception("Не удалось подключиться через localhost")
+    except:
+        print("❌ Не удалось подключиться к MongoDB")
+        mongo_client = None
 
-projects_mongo = []
+if mongo_client:
 
-for _, project in projects_df.iterrows():
-    pid = project["project_id"]
+    mongo_db = mongo_client["studmongo"]
 
-    project_doc = {
-        "project_id": int(pid),
-        "name": project["name"],
-        "description": project["description"],
-        "created_at": project["created_at"],
-        "tasks": tasks_grouped.get_group(pid)
-                 .drop(columns=["project_id"])
-                 .to_dict("records") if pid in tasks_grouped.groups else []
-    }
+    # Очистка коллекций (если есть)
+    mongo_db.projects.drop()
+    mongo_db.tasks.drop()
 
-    projects_mongo.append(project_doc)
+    # -------------------------
+    # Загрузка данных
+    # -------------------------
 
-print(f"✔ Подготовлено документов для MongoDB: {len(projects_mongo):,}")
-print("Пример документа:")
-projects_mongo[0]
+    print("\n📥 Загрузка данных в MongoDB...")
+
+    # 1️⃣ Вставка проектов с вложенными задачами
+    projects_collection = mongo_db["projects"]
+    projects_collection.insert_many(projects_mongo)
+    print(f"✅ Загружено {len(projects_mongo):,} проектов (с вложенными задачами)")
+
+    # 2️⃣ Вставка задач (плоская структура)
+    tasks_collection = mongo_db["tasks"]
+    tasks_records = tasks_df.to_dict("records")
+    tasks_collection.insert_many(tasks_records)
+    print(f"✅ Загружено {len(tasks_records):,} задач")
+
+    # -------------------------
+    # Создание индексов
+    # -------------------------
+
+    print("\n⚙ Создание индексов...")
+
+    projects_collection.create_index("project_id")
+    projects_collection.create_index("tasks.status")
+
+    tasks_collection.create_index("task_id")
+    tasks_collection.create_index("project_id")
+    tasks_collection.create_index("status")
+
+    print("✅ Индексы созданы")
+
+else:
+    print("❌ Пропуск операций MongoDB из-за ошибки подключения")
+
