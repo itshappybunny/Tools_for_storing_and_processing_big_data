@@ -30,71 +30,37 @@ def get_urgent_projects_pg():
                 WHERE t.status = 'срочно'
             """
             cur.execute(query)
-            return cur.fetchall()
+            rows = cur.fetchall()
+
+            # Преобразуем в словари — как в MongoDB
+            projects = []
+            for r in rows:
+                projects.append({
+                    "project_id": r[0],
+                    "name": r[1],
+                    "description": r[2],
+                    "created_at": r[3]
+                })
+
+            return projects
+
     except Exception as e:
-        print("Ошибка запроса PostgreSQL:", e)
+        print(f"❌ Ошибка запроса PostgreSQL: {e}")
         return []
     finally:
         conn.close()
 
+
+# Выполнение и вывод
 urgent_projects_pg, time_pg = measure_time(get_urgent_projects_pg)
 
-print("📌 Срочные проекты (PostgreSQL):")
-print(f"⏱ Выполнено за {time_pg:.5f} сек")
-
-for p in urgent_projects_pg[:10]:
-    print(f"- Project ID: {p[0]}, Name: {p[1]}")
-
-
-
-
-
-def get_mongodb_urgent_projects():
-    """Найти проекты, где есть хотя бы одна задача со статусом 'срочно' (MongoDB)."""
+if urgent_projects_pg:
+    print("📌 Срочные проекты (PostgreSQL):")
+    print(f"⏱ Выполнено за {time_pg:.5f} секунд")
+    print(f"📊 Найдено {len(urgent_projects_pg)} проектов:")
     
-    try:
-        if not mongo_client:
-            print("❌ Нет подключения к MongoDB")
-            return []
-
-        mongo_db = mongo_client['studmongo']
-        projects_collection = mongo_db['projects']
-        tasks_collection = mongo_db['tasks']
-
-        # Шаг 1: pipeline — найти project_id, в которых есть срочные задачи
-        urgent_pipeline = [
-            {"$match": {"status": "срочно"}},
-            {"$group": {"_id": "$project_id"}}
-        ]
-
-        urgent_projects_ids = list(tasks_collection.aggregate(urgent_pipeline))
-
-        if not urgent_projects_ids:
-            print("❌ Нет проектов со срочными задачами")
-            return []
-
-        project_ids = [item["_id"] for item in urgent_projects_ids]
-
-        # Шаг 2: Получить сами проекты
-        projects = list(projects_collection.find(
-            {"project_id": {"$in": project_ids}},
-            {"_id": 0}
-        ))
-
-
-        return projects
-
-    except Exception as e:
-        print(f"❌ Ошибка в MongoDB запросе: {e}")
-        return []
-
-mongo_urgent_projects, mongo_time = measure_time(get_mongodb_urgent_projects)
-
-if mongo_urgent_projects:
-    print("📌 Срочные проекты (MongoDB):")
-    print(f"⏱ Выполнено за {mongo_time:.5f} секунд")
-    print(f"📊 Найдено {len(mongo_urgent_projects)} проектов:")
-    for proj in mongo_urgent_projects[:5]:
+    for proj in urgent_projects_pg[:5]:
         print(f"- Project ID: {proj['project_id']}, Name: {proj['name']}")
 else:
     print("❌ Проекты не найдены")
+
