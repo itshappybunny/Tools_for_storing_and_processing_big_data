@@ -313,3 +313,86 @@ else:
 ✅ Таблицы projects и tasks успешно созданы
 📥 Загружаем данные...
 ❌ Ошибка при работе с PostgreSQL: tuple index out of range
+
+
+# Параметры подключения (Docker)
+pg_conn_params = {
+    "dbname": "studpg",
+    "user": "postgres",
+    "password": "changeme",
+    "host": "postgresql",  # имя сервиса из docker-compose
+    "port": "5432"
+}
+
+pg_conn = check_postgres_connection(pg_conn_params)
+
+if pg_conn:
+    try:
+        with pg_conn.cursor() as cur:
+            # Удаляем старые таблицы
+            cur.execute("DROP TABLE IF EXISTS tasks CASCADE")
+            cur.execute("DROP TABLE IF EXISTS projects CASCADE")
+
+            # Создаём таблицу проектов
+            cur.execute("""
+                CREATE TABLE projects (
+                    project_id INTEGER PRIMARY KEY,
+                    name VARCHAR(200),
+                    description TEXT,
+                    created_at DATE
+                )
+            """)
+
+            # Создаём таблицу задач
+            cur.execute("""
+                CREATE TABLE tasks (
+                    task_id INTEGER PRIMARY KEY,
+                    project_id INTEGER REFERENCES projects(project_id) ON DELETE CASCADE,
+                    title VARCHAR(200),
+                    status VARCHAR(50),
+                    deadline DATE
+                )
+            """)
+
+            # Индексы (опционально для ускорения выборок)
+            cur.execute("CREATE INDEX idx_tasks_project_id ON tasks(project_id)")
+            cur.execute("CREATE INDEX idx_tasks_status ON tasks(status)")
+        
+        print("✅ Таблицы projects и tasks успешно созданы")
+
+        print("📥 Загружаем данные...")
+
+        # -------------------------
+        # Загрузка проектов
+        # -------------------------
+        with pg_conn.cursor() as cur:
+            for _, row in projects_df.iterrows():
+                cur.execute("""
+                    INSERT INTO projects (project_id, name, description, created_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['project_id'], row['name'], row['description'],
+                      row['created_at']))
+
+        # -------------------------
+        # Загрузка задач
+        # -------------------------
+        with pg_conn.cursor() as cur:
+            for _, row in tasks_df.iterrows():
+                cur.execute("""
+                    INSERT INTO tasks (task_id, project_id, title, status, deadline)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['task_id'], row['project_id'], row['title'],
+                      row['status'], row['deadline']))
+
+        pg_conn.commit()
+
+        print(f"✅ Загружено {len(projects_df):,} проектов")
+        print(f"✅ Загружено {len(tasks_df):,} задач")
+
+    except Exception as e:
+        print(f"❌ Ошибка при работе с PostgreSQL: {e}")
+    finally:
+        pg_conn.close()
+
+else:
+    print("❌ Пропуск операций с PostgreSQL — нет подключения")
