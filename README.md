@@ -11,7 +11,7 @@
 ## **[Лабораторная работа 4.1. Сравнение подходов хранения больших данных](https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/tree/main/lw_4_1)**
 
 
-## **Лабораторная работа 5.1. Развертывание и настройка кластера Hadoop**
+## **Лабораторная работа 5.1. Развертывание и настройка кластера Hadoop(https://github.com/itshappybunny/Tools_for_storing_and_processing_big_data/blob/main/lw_5_1/README.md)**
 
 
 ## **Лабораторная работа 6.1. Обработка данных с использованием Apache Spark**
